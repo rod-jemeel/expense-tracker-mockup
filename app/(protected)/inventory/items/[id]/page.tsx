@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import { redirect, notFound } from "next/navigation"
+import { connection } from "next/server"
 import { headers } from "next/headers"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon, DeliveryBox01Icon } from "@hugeicons/core-free-icons"
@@ -8,15 +9,42 @@ import { auth } from "@/lib/auth"
 import { getItem } from "@/lib/server/services/inventory"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { CurrentPrice, CurrentPriceSkeleton } from "./_components/current-price"
 import { PriceHistory, PriceHistorySkeleton } from "./_components/price-history"
 import { AddPriceDialog } from "./_components/add-price-dialog"
 
-export default async function ItemDetailPage({
+function ItemDetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Skeleton className="size-8" />
+        <Skeleton className="size-10 rounded-lg" />
+        <div className="flex-1">
+          <Skeleton className="h-5 w-32 mb-1" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="h-9 w-28" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <CurrentPriceSkeleton />
+      </div>
+      <div>
+        <Skeleton className="h-4 w-24 mb-4" />
+        <PriceHistorySkeleton />
+      </div>
+    </div>
+  )
+}
+
+async function ItemDetailContent({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  // Mark as dynamic - auth requires request headers
+  await connection()
+
   const session = await auth.api.getSession({
     headers: await headers(),
   })
@@ -64,21 +92,29 @@ export default async function ItemDetailPage({
             <span>Unit: {item.unit}</span>
           </div>
         </div>
-        <AddPriceDialog itemId={itemId} orgId={orgId} unit={item.unit} />
+        <AddPriceDialog itemId={itemId} unit={item.unit} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Suspense fallback={<CurrentPriceSkeleton />}>
-          <CurrentPrice itemId={itemId} orgId={orgId} unit={item.unit} />
-        </Suspense>
+        <CurrentPrice itemId={itemId} orgId={orgId} unit={item.unit} />
       </div>
 
       <div>
         <h2 className="mb-4 text-sm font-medium">Price History</h2>
-        <Suspense fallback={<PriceHistorySkeleton />}>
-          <PriceHistory itemId={itemId} orgId={orgId} unit={item.unit} />
-        </Suspense>
+        <PriceHistory itemId={itemId} orgId={orgId} unit={item.unit} />
       </div>
     </div>
+  )
+}
+
+export default function ItemDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  return (
+    <Suspense fallback={<ItemDetailSkeleton />}>
+      <ItemDetailContent params={params} />
+    </Suspense>
   )
 }

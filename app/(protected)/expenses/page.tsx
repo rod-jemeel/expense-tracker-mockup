@@ -1,15 +1,14 @@
 import { Suspense } from "react"
-import Link from "next/link"
 import { redirect } from "next/navigation"
+import { connection } from "next/server"
 import { headers } from "next/headers"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { PlusSignIcon } from "@hugeicons/core-free-icons"
 import { auth } from "@/lib/auth"
-import { Button } from "@/components/ui/button"
 import { ExpenseFilters } from "./_components/expense-filters"
 import { ExpenseList, ExpenseListSkeleton } from "./_components/expense-list"
+import { NewExpenseDialog } from "./_components/new-expense-dialog"
 
-export default async function ExpensesPage({
+// Server component that fetches data - wrapped in Suspense
+async function ExpenseListWithAuth({
   searchParams,
 }: {
   searchParams: Promise<{
@@ -20,6 +19,9 @@ export default async function ExpensesPage({
     page?: string
   }>
 }) {
+  // Mark as dynamic - auth requires request headers
+  await connection()
+
   const session = await auth.api.getSession({
     headers: await headers(),
   })
@@ -36,34 +38,56 @@ export default async function ExpensesPage({
   const orgId = session.session.activeOrganizationId
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <ExpenseList
+      orgId={orgId}
+      from={params.from}
+      to={params.to}
+      categoryId={params.categoryId}
+      vendor={params.vendor}
+      page={params.page ? parseInt(params.page, 10) : 1}
+    />
+  )
+}
+
+// Page renders static UI immediately, only data fetching is in Suspense
+export default function ExpensesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    from?: string
+    to?: string
+    categoryId?: string
+    vendor?: string
+    page?: string
+  }>
+}) {
+  return (
+    <div className="flex flex-col h-full gap-6">
+      {/* Static header - renders immediately */}
+      <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="text-lg font-medium">Expenses</h1>
           <p className="text-xs text-muted-foreground">
             Manage your organization&apos;s expenses
           </p>
         </div>
-        <Button asChild size="sm" className="gap-1">
-          <Link href="/expenses/new">
-            <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-            Add Expense
-          </Link>
-        </Button>
+        {/* Client component using client-side auth state */}
+        <NewExpenseDialog />
       </div>
 
-      <ExpenseFilters orgId={orgId} />
+      {/* Client component using useQueryState/useSearchParams - needs Suspense */}
+      <div className="flex-shrink-0">
+        <Suspense fallback={<div className="h-7" />}>
+          <ExpenseFilters />
+        </Suspense>
+      </div>
 
-      <Suspense fallback={<ExpenseListSkeleton />}>
-        <ExpenseList
-          orgId={orgId}
-          from={params.from}
-          to={params.to}
-          categoryId={params.categoryId}
-          vendor={params.vendor}
-          page={params.page ? parseInt(params.page, 10) : 1}
-        />
-      </Suspense>
+      {/* Only the data list is in Suspense */}
+      <div className="flex-1 min-h-0">
+        <Suspense fallback={<ExpenseListSkeleton />}>
+          <ExpenseListWithAuth searchParams={searchParams} />
+        </Suspense>
+      </div>
     </div>
   )
 }

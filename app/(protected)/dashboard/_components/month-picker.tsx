@@ -5,14 +5,13 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 
-interface MonthPickerProps {
-  currentMonth: string // YYYY-MM format
-}
-
-export function MonthPicker({ currentMonth }: MonthPickerProps) {
+export function MonthPicker() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  // Derive current month from URL or default to now
+  const monthParam = searchParams.get("month")
+  const currentMonth = monthParam || new Date().toISOString().slice(0, 7)
   const [year, month] = currentMonth.split("-").map(Number)
   const date = new Date(year, month - 1, 1)
 

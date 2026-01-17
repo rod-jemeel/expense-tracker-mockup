@@ -55,7 +55,7 @@ interface OverviewContentProps {
   historicalData: HistoricalDataPoint[]
   categoryData: CategoryData[]
   inventoryMovers: InventoryMover[]
-  trends: Record<KpiWidgetId, number | null>
+  trends: Partial<Record<KpiWidgetId, number | null>>
 }
 
 export function OverviewContent({
@@ -134,11 +134,15 @@ export function OverviewContent({
 function OverviewSkeleton() {
   return (
     <div className="space-y-6">
+      {/* Key Metrics header - static, not skeleton */}
       <div className="flex items-center justify-between">
-        <Skeleton className="h-5 w-24" />
+        <h2 className="text-sm font-medium text-muted-foreground">
+          Key Metrics
+        </h2>
         <Skeleton className="h-8 w-24" />
       </div>
 
+      {/* KPI cards skeleton */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="rounded-lg border border-border bg-card p-4">
@@ -148,14 +152,21 @@ function OverviewSkeleton() {
         ))}
       </div>
 
+      {/* Chart skeleton - matches ChartContainer structure */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <div className="rounded-lg border border-border bg-card p-4">
-          <Skeleton className="h-4 w-32 mb-2" />
-          <Skeleton className="h-[200px] w-full" />
+          <div className="mb-4">
+            <Skeleton className="h-5 w-32 mb-1" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+          <Skeleton className="h-[220px] w-full" />
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <Skeleton className="h-4 w-32 mb-2" />
-          <Skeleton className="h-[200px] w-full" />
+          <div className="mb-4">
+            <Skeleton className="h-5 w-36 mb-1" />
+            <Skeleton className="h-3 w-44" />
+          </div>
+          <Skeleton className="h-[220px] w-full" />
         </div>
       </div>
     </div>
