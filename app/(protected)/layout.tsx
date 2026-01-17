@@ -1,26 +1,20 @@
-import { redirect } from "next/navigation"
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
+import { Suspense } from "react"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar, AppSidebarSkeleton } from "@/components/app-sidebar"
 import { Separator } from "@/components/ui/separator"
 
-export default async function ProtectedLayout({
+// Auth is handled by proxy.ts - no need to check here
+// This allows the layout shell to be static/cached
+export default function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-
-  if (!session) {
-    redirect("/auth/sign-in")
-  }
-
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <Suspense fallback={<AppSidebarSkeleton />}>
+        <AppSidebar />
+      </Suspense>
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />

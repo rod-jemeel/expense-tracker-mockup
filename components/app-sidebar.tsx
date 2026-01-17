@@ -63,6 +63,75 @@ const settingsNav = [
   },
 ]
 
+export function AppSidebarSkeleton() {
+  return (
+    <Sidebar>
+      <SidebarHeader className="border-b border-border px-2 py-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton className="w-full justify-between">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-4" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="size-3" />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {[1, 2, 3].map((i) => (
+                <SidebarMenuItem key={i}>
+                  <SidebarMenuButton>
+                    <Skeleton className="size-4" />
+                    <Skeleton className="h-4 w-20" />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton>
+                  <Skeleton className="size-4" />
+                  <Skeleton className="h-4 w-20" />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton className="w-full">
+              <Skeleton className="size-6 rounded-full" />
+              <div className="flex flex-1 flex-col items-start gap-1">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-2 w-28" />
+              </div>
+              <Skeleton className="size-3" />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </Sidebar>
+  )
+}
+
 export function AppSidebar() {
   const pathname = usePathname()
   const { data: session, isPending: sessionPending } = authClient.useSession()
