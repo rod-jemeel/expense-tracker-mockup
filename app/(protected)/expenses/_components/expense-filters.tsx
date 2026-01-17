@@ -3,7 +3,7 @@
 import { useQueryState } from "nuqs"
 import useSWR from "swr"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { FilterIcon, Cancel01Icon } from "@hugeicons/core-free-icons"
+import { FilterIcon, Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -30,6 +30,7 @@ export function ExpenseFilters({ orgId }: ExpenseFiltersProps) {
   const [from, setFrom] = useQueryState("from")
   const [to, setTo] = useQueryState("to")
   const [categoryId, setCategoryId] = useQueryState("categoryId")
+  const [vendor, setVendor] = useQueryState("vendor")
 
   const { data } = useSWR<{ data: { items: Category[] } }>(
     `/api/orgs/${orgId}/categories`,
@@ -41,12 +42,28 @@ export function ExpenseFilters({ orgId }: ExpenseFiltersProps) {
     setFrom(null)
     setTo(null)
     setCategoryId(null)
+    setVendor(null)
   }
 
-  const hasFilters = from || to || categoryId
+  const hasFilters = from || to || categoryId || vendor
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <div className="relative">
+        <HugeiconsIcon
+          icon={Search01Icon}
+          strokeWidth={2}
+          className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          type="text"
+          placeholder="Search vendor..."
+          value={vendor ?? ""}
+          onChange={(e) => setVendor(e.target.value || null)}
+          className="h-7 w-40 pl-8"
+        />
+      </div>
+
       <div className="flex items-center gap-2">
         <HugeiconsIcon icon={FilterIcon} strokeWidth={2} className="size-3.5 text-muted-foreground" />
         <span className="text-xs text-muted-foreground">Filters:</span>

@@ -41,6 +41,7 @@ export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>
 export const listExpensesSchema = paginationSchema.merge(dateRangeSchema).extend({
   categoryId: uuidSchema.optional(),
   tagId: uuidSchema.optional(),
+  vendor: z.string().max(255).optional(),
 })
 
 export type ListExpensesQuery = z.infer<typeof listExpensesSchema>
