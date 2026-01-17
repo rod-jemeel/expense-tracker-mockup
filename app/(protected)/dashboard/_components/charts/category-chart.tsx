@@ -34,9 +34,7 @@ export function CategoryChart({ data }: CategoryChartProps) {
 
   // Transform data for the chart - take top 5 categories
   const chartData = data.slice(0, 5).map((cat) => ({
-    name: cat.categoryName.length > 12
-      ? cat.categoryName.slice(0, 12) + "..."
-      : cat.categoryName,
+    name: cat.categoryName,
     amount: cat.total,
   }))
 

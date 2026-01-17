@@ -62,7 +62,7 @@ export function BarChart({
     <RechartsBarChart
       data={data}
       layout="vertical"
-      margin={{ top: 10, right: 10, left: 80, bottom: 0 }}
+      margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
     >
       {showGrid && (
         <CartesianGrid
@@ -84,24 +84,24 @@ export function BarChart({
         tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
         tickLine={false}
         axisLine={false}
-        width={70}
+        width={110}
       />
       <Tooltip
         contentStyle={{
-          backgroundColor: "hsl(var(--popover))",
+          backgroundColor: "white",
           border: "1px solid hsl(var(--border))",
           borderRadius: "8px",
           padding: "8px 12px",
           boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
         }}
         labelStyle={{
-          color: "hsl(var(--popover-foreground))",
+          color: "#111827",
           fontWeight: 500,
           marginBottom: "4px",
           fontSize: "12px",
         }}
         itemStyle={{
-          color: "hsl(var(--popover-foreground))",
+          color: "#374151",
           fontSize: "12px",
           padding: "2px 0",
         }}
@@ -145,20 +145,20 @@ export function BarChart({
       />
       <Tooltip
         contentStyle={{
-          backgroundColor: "hsl(var(--popover))",
+          backgroundColor: "white",
           border: "1px solid hsl(var(--border))",
           borderRadius: "8px",
           padding: "8px 12px",
           boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
         }}
         labelStyle={{
-          color: "hsl(var(--popover-foreground))",
+          color: "#111827",
           fontWeight: 500,
           marginBottom: "4px",
           fontSize: "12px",
         }}
         itemStyle={{
-          color: "hsl(var(--popover-foreground))",
+          color: "#374151",
           fontSize: "12px",
           padding: "2px 0",
         }}
