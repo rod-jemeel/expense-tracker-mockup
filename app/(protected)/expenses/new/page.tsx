@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import { auth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { NewExpenseForm } from "./_components/new-expense-form"
@@ -26,7 +27,7 @@ export default async function NewExpensePage() {
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon-sm" asChild>
           <Link href="/expenses">
-            <ArrowLeft />
+            <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
           </Link>
         </Button>
         <div>

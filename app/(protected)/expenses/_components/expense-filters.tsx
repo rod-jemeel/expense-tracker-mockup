@@ -2,7 +2,8 @@
 
 import { useQueryState } from "nuqs"
 import useSWR from "swr"
-import { Filter, X } from "lucide-react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { FilterIcon, Cancel01Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -47,7 +48,7 @@ export function ExpenseFilters({ orgId }: ExpenseFiltersProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-2">
-        <Filter className="size-3.5 text-muted-foreground" />
+        <HugeiconsIcon icon={FilterIcon} strokeWidth={2} className="size-3.5 text-muted-foreground" />
         <span className="text-xs text-muted-foreground">Filters:</span>
       </div>
 
@@ -97,7 +98,7 @@ export function ExpenseFilters({ orgId }: ExpenseFiltersProps) {
           onClick={clearFilters}
           className="h-7 gap-1"
         >
-          <X className="size-3" />
+          <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3" />
           Clear
         </Button>
       )}

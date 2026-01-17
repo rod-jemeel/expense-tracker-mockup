@@ -2,7 +2,8 @@ import { Suspense } from "react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
-import { Plus } from "lucide-react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { PlusSignIcon } from "@hugeicons/core-free-icons"
 import { auth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { ExpenseFilters } from "./_components/expense-filters"
@@ -43,7 +44,7 @@ export default async function ExpensesPage({
         </div>
         <Button asChild size="sm" className="gap-1">
           <Link href="/expenses/new">
-            <Plus />
+            <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
             Add Expense
           </Link>
         </Button>

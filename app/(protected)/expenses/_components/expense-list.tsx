@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { MoreHorizontalCircle01Icon, PencilEdit01Icon, Delete01Icon } from "@hugeicons/core-free-icons"
 import { listExpenses } from "@/lib/server/services/expenses"
 import {
   Table,
@@ -102,17 +103,17 @@ export async function ExpenseList({
                   <DropdownMenuTrigger
                     render={<Button variant="ghost" size="icon-sm" />}
                   >
-                    <MoreHorizontal />
+                    <HugeiconsIcon icon={MoreHorizontalCircle01Icon} strokeWidth={2} />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       render={<Link href={`/expenses/${expense.id}/edit`} />}
                     >
-                      <Pencil className="size-3.5" />
+                      <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} className="size-3.5" />
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem variant="destructive">
-                      <Trash2 className="size-3.5" />
+                      <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} className="size-3.5" />
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
