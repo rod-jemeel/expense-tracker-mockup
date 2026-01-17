@@ -20,7 +20,7 @@ export const auth = betterAuth({
   // Email + password authentication
   emailAndPassword: {
     enabled: true,
-    async sendResetPassword(data, request) {
+    async sendResetPassword(data) {
       // Non-blocking email send using after()
       after(async () => {
         // TODO: Implement email sending via Resend/SendGrid
