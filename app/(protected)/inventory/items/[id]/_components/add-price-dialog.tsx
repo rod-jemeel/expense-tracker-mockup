@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PlusSignIcon } from "@hugeicons/core-free-icons"
+import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -25,12 +26,12 @@ import {
 
 interface AddPriceDialogProps {
   itemId: string
-  orgId: string
   unit: string
 }
 
-export function AddPriceDialog({ itemId, orgId, unit }: AddPriceDialogProps) {
+export function AddPriceDialog({ itemId, unit }: AddPriceDialogProps) {
   const router = useRouter()
+  const { data: activeOrg } = authClient.useActiveOrganization()
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,8 +42,14 @@ export function AddPriceDialog({ itemId, orgId, unit }: AddPriceDialogProps) {
     note: "",
   })
 
+  const orgId = activeOrg?.id
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!orgId) {
+      setError("No organization selected")
+      return
+    }
     setError(null)
     setIsLoading(true)
 

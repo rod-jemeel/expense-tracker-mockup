@@ -4,6 +4,7 @@ import { useQueryState } from "nuqs"
 import useSWR from "swr"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { FilterIcon, Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -15,10 +16,6 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 
-interface ExpenseFiltersProps {
-  orgId: string
-}
-
 interface Category {
   id: string
   name: string
@@ -26,14 +23,17 @@ interface Category {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-export function ExpenseFilters({ orgId }: ExpenseFiltersProps) {
+export function ExpenseFilters() {
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const orgId = activeOrg?.id
+
   const [from, setFrom] = useQueryState("from")
   const [to, setTo] = useQueryState("to")
   const [categoryId, setCategoryId] = useQueryState("categoryId")
   const [vendor, setVendor] = useQueryState("vendor")
 
   const { data } = useSWR<{ data: { items: Category[] } }>(
-    `/api/orgs/${orgId}/categories`,
+    orgId ? `/api/orgs/${orgId}/categories` : null,
     fetcher
   )
   const categories = data?.data?.items ?? []

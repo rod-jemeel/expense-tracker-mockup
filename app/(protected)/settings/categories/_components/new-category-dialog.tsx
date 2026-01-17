@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PlusSignIcon } from "@hugeicons/core-free-icons"
+import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -21,19 +22,22 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 
-interface NewCategoryDialogProps {
-  orgId: string
-}
-
-export function NewCategoryDialog({ orgId }: NewCategoryDialogProps) {
+export function NewCategoryDialog() {
   const router = useRouter()
+  const { data: activeOrg } = authClient.useActiveOrganization()
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [name, setName] = useState("")
 
+  const orgId = activeOrg?.id
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!orgId) {
+      setError("No organization selected")
+      return
+    }
     setError(null)
     setIsLoading(true)
 
