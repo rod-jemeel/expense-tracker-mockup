@@ -1,4 +1,5 @@
-import { TrendingUp, TrendingDown } from "lucide-react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowUp01Icon, ArrowDown01Icon } from "@hugeicons/core-free-icons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getDashboard } from "@/lib/server/services/dashboard"
@@ -54,9 +55,9 @@ export async function InventoryMovers({ orgId, month }: InventoryMoversProps) {
                   }`}
                 >
                   {item.percentChange >= 0 ? (
-                    <TrendingUp className="size-3" />
+                    <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} className="size-3" />
                   ) : (
-                    <TrendingDown className="size-3" />
+                    <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-3" />
                   )}
                   <span>{formatPercent(item.percentChange)}</span>
                 </div>

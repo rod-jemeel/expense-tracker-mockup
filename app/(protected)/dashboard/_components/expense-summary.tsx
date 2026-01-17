@@ -1,4 +1,5 @@
-import { TrendingUp, TrendingDown, DollarSign } from "lucide-react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowUp01Icon, ArrowDown01Icon, DollarCircleIcon } from "@hugeicons/core-free-icons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getDashboard } from "@/lib/server/services/dashboard"
@@ -33,7 +34,7 @@ export async function ExpenseSummary({ orgId, month }: ExpenseSummaryProps) {
           <CardTitle className="text-xs font-medium text-muted-foreground">
             Total Expenses
           </CardTitle>
-          <DollarSign className="size-4 text-muted-foreground" />
+          <HugeiconsIcon icon={DollarCircleIcon} strokeWidth={2} className="size-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-xl font-bold">
@@ -42,9 +43,9 @@ export async function ExpenseSummary({ orgId, month }: ExpenseSummaryProps) {
           {data.momChange !== null && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               {data.momChange >= 0 ? (
-                <TrendingUp className="size-3 text-destructive" />
+                <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} className="size-3 text-destructive" />
               ) : (
-                <TrendingDown className="size-3 text-green-500" />
+                <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-3 text-green-500" />
               )}
               <span>{formatPercent(data.momChange)} from last month</span>
             </div>

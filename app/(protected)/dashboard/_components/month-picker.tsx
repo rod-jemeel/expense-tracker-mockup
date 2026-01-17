@@ -1,7 +1,8 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 
 interface MonthPickerProps {
@@ -40,7 +41,7 @@ export function MonthPicker({ currentMonth }: MonthPickerProps) {
         onClick={() => navigateMonth(-1)}
         aria-label="Previous month"
       >
-        <ChevronLeft />
+        <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
       </Button>
       <span className="min-w-32 text-center text-sm font-medium">
         {formatMonth(date)}
@@ -52,7 +53,7 @@ export function MonthPicker({ currentMonth }: MonthPickerProps) {
         disabled={isCurrentMonth()}
         aria-label="Next month"
       >
-        <ChevronRight />
+        <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
       </Button>
     </div>
   )
