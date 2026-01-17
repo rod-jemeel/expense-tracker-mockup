@@ -1,3 +1,4 @@
+import { connection } from "next/server"
 import { requireSuperadmin } from "@/lib/server/auth-helpers"
 import { handleError } from "@/lib/errors"
 import { getAllOrganizations } from "@/lib/server/services/super-dashboard"
@@ -7,6 +8,9 @@ import { getAllOrganizations } from "@/lib/server/services/super-dashboard"
  * List all organizations (superadmin only)
  */
 export async function GET() {
+  // Mark route as dynamic - auth requires request headers
+  await connection()
+
   try {
     await requireSuperadmin()
 

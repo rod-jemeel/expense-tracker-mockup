@@ -126,7 +126,7 @@ export const getDashboard = cache(async function getDashboard(data: {
       count,
       percentOfTotal: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
     }))
-    .sort((a, b) => b.total - a.total)
+    .toSorted((a, b) => b.total - a.total)
 
   // Top drivers: top 5 categories by spend
   const topDrivers = categoryBreakdown.slice(0, 5)
@@ -223,9 +223,9 @@ async function getInventoryMovers(data: {
     }
   }
 
-  // Sort by absolute percent change and take top 10
+  // Sort by absolute percent change and take top 10 (using toSorted for immutability)
   return movers
-    .sort((a, b) => Math.abs(b.percentChange) - Math.abs(a.percentChange))
+    .toSorted((a, b) => Math.abs(b.percentChange) - Math.abs(a.percentChange))
     .slice(0, 10)
 }
 

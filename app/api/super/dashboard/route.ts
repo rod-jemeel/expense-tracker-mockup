@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server"
+import { connection } from "next/server"
 import { z } from "zod"
 import { requireSuperadmin } from "@/lib/server/auth-helpers"
 import { handleError, validationError } from "@/lib/errors"
@@ -14,6 +15,9 @@ const superDashboardQuerySchema = z.object({
  * Get aggregated dashboard data across all organizations (superadmin only)
  */
 export async function GET(request: NextRequest) {
+  // Mark route as dynamic - auth requires request headers
+  await connection()
+
   try {
     await requireSuperadmin()
 

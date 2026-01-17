@@ -236,7 +236,7 @@ export const getSuperDashboard = cache(async function getSuperDashboard(data: {
     orgExpenses.set(orgId, existing)
   }
 
-  // Build org breakdown sorted by total expenses
+  // Build org breakdown sorted by total expenses (using toSorted for immutability)
   const orgBreakdown: OrgExpenseSummary[] = Array.from(orgExpenses.entries())
     .map(([orgId, { total, count }]) => ({
       orgId,
@@ -244,7 +244,7 @@ export const getSuperDashboard = cache(async function getSuperDashboard(data: {
       totalExpenses: total,
       expenseCount: count,
     }))
-    .sort((a, b) => b.totalExpenses - a.totalExpenses)
+    .toSorted((a, b) => b.totalExpenses - a.totalExpenses)
 
   // Aggregate inventory by org
   const orgInventory = new Map<string, { itemCount: number; priceChangeCount: number }>()
@@ -268,54 +268,70 @@ export const getSuperDashboard = cache(async function getSuperDashboard(data: {
       itemCount,
       priceChangeCount,
     }))
-    .sort((a, b) => b.itemCount - a.itemCount)
+    .toSorted((a, b) => b.itemCount - a.itemCount)
 
   // Find top price movers - get previous prices for comparison
   const priceMovers: PriceMover[] = []
 
   // Get unique items that had price changes this month
-  const itemsWithChanges = new Set(priceHistory.map((p) => p.item_id))
+  const itemsWithChangesArray = Array.from(new Set(priceHistory.map((p) => p.item_id)))
 
-  // For each item, find if there was a previous price before this month
-  for (const itemId of itemsWithChanges) {
-    const itemInfo = itemNames.get(itemId)
-    if (!itemInfo) continue
+  // Build a Map for O(1) lookup of current prices by item_id (fixes O(n²) .find() in loop)
+  const currentPriceByItem = new Map<string, number>()
+  for (const price of priceHistory) {
+    // First occurrence is the latest (already sorted desc by effective_at)
+    if (!currentPriceByItem.has(price.item_id)) {
+      currentPriceByItem.set(price.item_id, Number(price.unit_price))
+    }
+  }
 
-    // Get the latest price this month for this item
-    const currentPriceRecord = priceHistory.find((p) => p.item_id === itemId)
-    if (!currentPriceRecord) continue
-
-    // Query for the most recent price before this month
-    const { data: previousPrices } = await supabase
+  // BATCH FETCH: Get all previous prices in ONE query instead of N queries (fixes N+1 waterfall)
+  if (itemsWithChangesArray.length > 0) {
+    const { data: allPreviousPrices } = await supabase
       .from("inventory_price_history")
-      .select("unit_price")
-      .eq("item_id", itemId)
+      .select("item_id, unit_price, effective_at")
+      .in("item_id", itemsWithChangesArray)
       .lt("effective_at", startDate.toISOString())
       .order("effective_at", { ascending: false })
-      .limit(1)
 
-    if (previousPrices && previousPrices.length > 0) {
-      const oldPrice = Number(previousPrices[0].unit_price)
-      const newPrice = Number(currentPriceRecord.unit_price)
-      const changePercent = ((newPrice - oldPrice) / oldPrice) * 100
+    // Build Map of latest previous price per item
+    const previousPriceByItem = new Map<string, number>()
+    for (const price of allPreviousPrices || []) {
+      // First occurrence per item is the latest (already sorted desc)
+      if (!previousPriceByItem.has(price.item_id)) {
+        previousPriceByItem.set(price.item_id, Number(price.unit_price))
+      }
+    }
 
-      if (Math.abs(changePercent) > 0.1) {
-        priceMovers.push({
-          itemId,
-          itemName: itemInfo.name,
-          orgId: itemInfo.orgId,
-          orgName: orgNames.get(itemInfo.orgId) || "Unknown",
-          oldPrice,
-          newPrice,
-          changePercent,
-        })
+    // Now process all items using Map lookups (O(1) per item)
+    for (const itemId of itemsWithChangesArray) {
+      const itemInfo = itemNames.get(itemId)
+      if (!itemInfo) continue
+
+      const newPrice = currentPriceByItem.get(itemId)
+      const oldPrice = previousPriceByItem.get(itemId)
+
+      if (newPrice !== undefined && oldPrice !== undefined && oldPrice > 0) {
+        const changePercent = ((newPrice - oldPrice) / oldPrice) * 100
+
+        if (Math.abs(changePercent) > 0.1) {
+          priceMovers.push({
+            itemId,
+            itemName: itemInfo.name,
+            orgId: itemInfo.orgId,
+            orgName: orgNames.get(itemInfo.orgId) || "Unknown",
+            oldPrice,
+            newPrice,
+            changePercent,
+          })
+        }
       }
     }
   }
 
-  // Sort by absolute change percent and take top 10
+  // Sort by absolute change percent and take top 10 (using toSorted for immutability)
   const topPriceMovers = priceMovers
-    .sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
+    .toSorted((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
     .slice(0, 10)
 
   return {
