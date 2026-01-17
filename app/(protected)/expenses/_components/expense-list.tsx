@@ -1,6 +1,3 @@
-import Link from "next/link"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { MoreHorizontalCircle01Icon, PencilEdit01Icon, Delete01Icon } from "@hugeicons/core-free-icons"
 import { listExpenses } from "@/lib/server/services/expenses"
 import {
   Table,
@@ -12,14 +9,8 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
 import { ListPagination } from "@/components/list-pagination"
+import { ExpenseActions } from "./expense-actions"
 
 const PAGE_SIZE = 20
 
@@ -79,19 +70,19 @@ export async function ExpenseList({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-28">Date</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="w-10"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+    <div className="flex flex-col h-full gap-4">
+      <div className="flex-1 min-h-0 rounded-lg border overflow-hidden">
+        <Table containerClassName="h-full">
+          <TableHeader className="sticky top-0 bg-card z-10 border-b-2 border-primary/20">
+              <TableRow>
+                <TableHead className="w-28">Date</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Vendor</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
             {data.items.map((expense) => (
               <TableRow key={expense.id}>
                 <TableCell className="text-xs">
@@ -109,36 +100,20 @@ export async function ExpenseList({
                   {formatCurrency(expense.amount)}
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={<Button variant="ghost" size="icon-sm" />}
-                    >
-                      <HugeiconsIcon icon={MoreHorizontalCircle01Icon} strokeWidth={2} />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        render={<Link href={`/expenses/${expense.id}/edit`} />}
-                      >
-                        <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} className="size-3.5" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem variant="destructive">
-                        <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} className="size-3.5" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <ExpenseActions expense={expense} orgId={orgId} />
                 </TableCell>
               </TableRow>
             ))}
-          </TableBody>
-        </Table>
+            </TableBody>
+          </Table>
       </div>
-      <ListPagination
-        total={data.total}
-        pageSize={PAGE_SIZE}
-        currentPage={page}
-      />
+      <div className="flex-shrink-0">
+        <ListPagination
+          total={data.total}
+          pageSize={PAGE_SIZE}
+          currentPage={page}
+        />
+      </div>
     </div>
   )
 }

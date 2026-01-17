@@ -71,20 +71,21 @@ export async function PriceHistory({ itemId, orgId, unit }: PriceHistoryProps) {
   }
 
   return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Change</TableHead>
-            <TableHead>Vendor</TableHead>
-            <TableHead>Note</TableHead>
-            <TableHead>Source</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pricesWithChange.map((price) => (
+    <div className="rounded-lg border overflow-hidden">
+      <div className="max-h-[500px] overflow-auto">
+        <Table>
+          <TableHeader className="sticky top-0 bg-card z-10 border-b-2 border-primary/20">
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Change</TableHead>
+              <TableHead>Vendor</TableHead>
+              <TableHead>Note</TableHead>
+              <TableHead>Source</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pricesWithChange.map((price) => (
             <TableRow key={price.id}>
               <TableCell className="text-xs">
                 {formatDate(price.effective_at)}
@@ -126,9 +127,10 @@ export async function PriceHistory({ itemId, orgId, unit }: PriceHistoryProps) {
                 </Badge>
               </TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

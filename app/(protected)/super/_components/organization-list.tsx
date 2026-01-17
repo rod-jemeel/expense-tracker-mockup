@@ -69,7 +69,7 @@ export async function OrganizationList() {
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-card z-10 border-b-2 border-primary/20">
                 <TableRow>
                   <TableHead className="text-xs">Organization</TableHead>
                   <TableHead className="text-right text-xs">Members</TableHead>

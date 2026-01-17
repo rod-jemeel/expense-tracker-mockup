@@ -34,9 +34,9 @@ export async function CategoryList({ orgId }: CategoryListProps) {
   }
 
   return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
+    <div className="rounded-lg border overflow-hidden">
+      <Table containerClassName="h-full">
+        <TableHeader className="sticky top-0 bg-card z-10 border-b-2 border-primary/20">
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Status</TableHead>
