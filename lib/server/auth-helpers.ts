@@ -75,7 +75,11 @@ export async function requireRole(requiredRoles: string[]) {
 
   // Check if user has any of the required roles
   const userRoles = membership.role.split(",")
-  const hasRole = requiredRoles.some((role) => userRoles.includes(role))
+  // "owner" role (Better Auth default for org creator) has full access like org_admin
+  const effectiveRoles = userRoles.includes("owner")
+    ? [...userRoles, "org_admin"]
+    : userRoles
+  const hasRole = requiredRoles.some((role) => effectiveRoles.includes(role))
 
   if (!hasRole) {
     throw new Error(`Role required: ${requiredRoles.join(" or ")}`)
@@ -116,7 +120,11 @@ export async function requireOrgAccess(
   // Check roles if specified
   if (requiredRoles && requiredRoles.length > 0) {
     const userRoles = membership.role.split(",")
-    const hasRole = requiredRoles.some((role) => userRoles.includes(role))
+    // "owner" role (Better Auth default for org creator) has full access like org_admin
+    const effectiveRoles = userRoles.includes("owner")
+      ? [...userRoles, "org_admin"]
+      : userRoles
+    const hasRole = requiredRoles.some((role) => effectiveRoles.includes(role))
 
     if (!hasRole) {
       throw new ApiError(
