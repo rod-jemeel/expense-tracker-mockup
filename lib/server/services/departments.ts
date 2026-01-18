@@ -56,7 +56,15 @@ export const listDepartments = cache(async function listDepartments({
 }): Promise<{ items: DepartmentWithMembers[]; total: number }> {
   let queryBuilder = supabase
     .from("departments")
-    .select("*, department_members(id)", { count: "exact" })
+    .select(`
+      *,
+      department_members(
+        id,
+        user_id,
+        is_manager,
+        user:user_id(id, name, email)
+      )
+    `, { count: "exact" })
     .eq("org_id", orgId)
     .order("name", { ascending: true })
 
