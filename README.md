@@ -208,7 +208,6 @@ next-mockup/
 │   │   ├── auth-helpers.ts           # Session & org helpers
 │   │   └── services/                 # Business logic layer
 │   └── validations/                  # Zod schemas
-├── docs/                             # Documentation
 ├── supabase/
 │   └── migrations/                   # SQL migrations
 └── public/                           # Static assets
@@ -386,21 +385,6 @@ Ensure all `.env.local` variables are set in your hosting platform:
 - Update `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` to production domain
 - Use production Supabase credentials
 - Set a strong `BETTER_AUTH_SECRET`
-
----
-
-## Documentation
-
-Detailed documentation is in the `/docs` directory:
-
-| Document | Description |
-|----------|-------------|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, data flow, performance patterns |
-| [AUTH_AND_ORGS.md](docs/AUTH_AND_ORGS.md) | Better Auth setup, roles, authorization |
-| [DATABASE.md](docs/DATABASE.md) | Schema design, price history model |
-| [API.md](docs/API.md) | Complete endpoint contracts |
-| [DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md) | UI patterns, colors, components |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production hosting guide |
 
 ---
 
