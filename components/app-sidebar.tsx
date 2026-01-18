@@ -15,6 +15,10 @@ import {
   AiBrain01Icon,
   UserMultiple02Icon,
   Recycle01Icon,
+  InboxIcon,
+  Share01Icon,
+  Mail01Icon,
+  Tag01Icon,
 } from "@hugeicons/core-free-icons"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -62,6 +66,16 @@ const mainNav = [
     icon: DeliveryBox01Icon,
   },
   {
+    title: "Inbox",
+    href: "/inbox",
+    icon: InboxIcon,
+  },
+  {
+    title: "Rules",
+    href: "/inbox/rules",
+    icon: Share01Icon,
+  },
+  {
     title: "AI Assistant",
     href: "/ai",
     icon: AiBrain01Icon,
@@ -83,6 +97,16 @@ const settingsNav = [
     title: "Members",
     href: "/settings/members",
     icon: UserMultiple02Icon,
+  },
+  {
+    title: "Email Accounts",
+    href: "/settings/email",
+    icon: Mail01Icon,
+  },
+  {
+    title: "Email Categories",
+    href: "/settings/email/categories",
+    icon: Tag01Icon,
   },
 ]
 
