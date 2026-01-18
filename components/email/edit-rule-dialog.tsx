@@ -173,7 +173,7 @@ export function EditRuleDialog({
                     {categories.find((c) => c.id === categoryId)?.name || "Select a category"}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4}>
+                <SelectContent sideOffset={4}>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}

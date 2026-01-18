@@ -134,7 +134,7 @@ export function EmailDetailDialog({
                     : "No category"}
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent position="popper" sideOffset={4}>
+              <SelectContent sideOffset={4}>
                 <SelectItem value="none">No category</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>

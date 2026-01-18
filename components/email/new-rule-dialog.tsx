@@ -174,7 +174,7 @@ export function NewRuleDialog({ categories }: NewRuleDialogProps) {
                       : "Select a category"}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4}>
+                <SelectContent sideOffset={4}>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
