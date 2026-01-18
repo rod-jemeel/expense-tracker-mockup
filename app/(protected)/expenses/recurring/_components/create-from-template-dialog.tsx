@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { FileImage } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -54,22 +55,50 @@ export function CreateFromTemplateDialog({
   const [formData, setFormData] = useState({
     expenseDate: "",
     totalAmount: "",
+    taxAmount: "",
     vendor: template.vendor || "",
     notes: template.notes || "",
   })
+  const [autoCalcTax, setAutoCalcTax] = useState(true)
+  const defaultTaxRate = 0.0825 // 8.25% Texas default
 
   // Initialize form data when dialog opens
   useEffect(() => {
     if (open) {
+      const totalAmount = template.estimated_amount?.toString() || ""
+      let taxAmount = ""
+      if (totalAmount && autoCalcTax) {
+        const total = parseFloat(totalAmount)
+        if (!isNaN(total) && total > 0) {
+          const preTax = total / (1 + defaultTaxRate)
+          taxAmount = (total - preTax).toFixed(2)
+        }
+      }
       setFormData({
         expenseDate: new Date().toISOString().split("T")[0],
-        totalAmount: template.estimated_amount?.toString() || "",
+        totalAmount,
+        taxAmount,
         vendor: template.vendor || "",
         notes: template.notes || "",
       })
       setError(null)
     }
-  }, [open, template])
+  }, [open, template, autoCalcTax, defaultTaxRate])
+
+  // Calculate tax when total amount changes
+  function handleTotalAmountChange(value: string) {
+    setFormData((prev) => {
+      const newData = { ...prev, totalAmount: value }
+      if (autoCalcTax && value) {
+        const total = parseFloat(value)
+        if (!isNaN(total) && total > 0) {
+          const preTax = total / (1 + defaultTaxRate)
+          newData.taxAmount = (total - preTax).toFixed(2)
+        }
+      }
+      return newData
+    })
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -84,6 +113,7 @@ export function CreateFromTemplateDialog({
           expenseDate: formData.expenseDate,
           categoryId: template.category_id,
           totalAmount: parseFloat(formData.totalAmount),
+          taxAmount: formData.taxAmount ? parseFloat(formData.taxAmount) : undefined,
           vendor: formData.vendor || undefined,
           notes: formData.notes || undefined,
           recurringTemplateId: template.id,
@@ -162,20 +192,47 @@ export function CreateFromTemplateDialog({
                   min="0"
                   placeholder="0.00"
                   value={formData.totalAmount}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      totalAmount: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => handleTotalAmountChange(e.target.value)}
                   disabled={isLoading}
                   required
                 />
-                <FieldDescription>
-                  Enter the actual amount paid
-                </FieldDescription>
+                <FieldDescription>Amount paid including tax</FieldDescription>
               </Field>
             </div>
+
+            <Field>
+              <div className="flex items-center justify-between">
+                <FieldLabel htmlFor="taxAmount">Tax Amount</FieldLabel>
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoCalcTax}
+                    onChange={(e) => setAutoCalcTax(e.target.checked)}
+                    className="size-3 rounded border-input"
+                    disabled={isLoading}
+                  />
+                  Auto-calculate ({(defaultTaxRate * 100).toFixed(2)}%)
+                </label>
+              </div>
+              <Input
+                id="taxAmount"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={formData.taxAmount}
+                onChange={(e) => {
+                  setAutoCalcTax(false)
+                  setFormData((prev) => ({ ...prev, taxAmount: e.target.value }))
+                }}
+                disabled={isLoading}
+              />
+              <FieldDescription>
+                {autoCalcTax
+                  ? "Calculated automatically from total"
+                  : "Enter tax amount manually"}
+              </FieldDescription>
+            </Field>
 
             <Field>
               <FieldLabel htmlFor="vendor">Vendor</FieldLabel>
@@ -203,6 +260,26 @@ export function CreateFromTemplateDialog({
                 rows={3}
               />
             </Field>
+
+            {/* Smart Receipt Upload - Coming Soon */}
+            <div className="rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+                  <FileImage className="size-5 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Smart Receipt Scanner</p>
+                    <Badge variant="secondary" className="text-[10px]">
+                      Coming Soon
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Upload a receipt or invoice and AI will auto-fill the form
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button
