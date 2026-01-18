@@ -19,6 +19,7 @@ import {
   Share01Icon,
   Mail01Icon,
   Tag01Icon,
+  Folder01Icon,
 } from "@hugeicons/core-free-icons"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -97,6 +98,11 @@ const settingsNav = [
     title: "Members",
     href: "/settings/members",
     icon: UserMultiple02Icon,
+  },
+  {
+    title: "Departments",
+    href: "/settings/departments",
+    icon: Folder01Icon,
   },
   {
     title: "Email Accounts",
