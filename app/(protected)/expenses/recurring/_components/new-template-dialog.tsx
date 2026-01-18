@@ -8,6 +8,8 @@ import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { FileImage } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -254,6 +256,26 @@ export function NewTemplateDialog() {
                 rows={3}
               />
             </Field>
+
+            {/* Sample Invoice Upload - Coming Soon */}
+            <div className="rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+                  <FileImage className="size-5 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Sample Invoice</p>
+                    <Badge variant="secondary" className="text-[10px]">
+                      Coming Soon
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Upload a sample invoice to auto-detect vendor and category
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button
