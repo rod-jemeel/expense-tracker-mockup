@@ -77,7 +77,7 @@ export function EmailDetailDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent className="max-w-2xl">
         <DialogHeader className="space-y-3">
           <div className="flex items-start justify-between gap-4">
@@ -126,9 +126,15 @@ export function EmailDetailDialog({
               disabled={isUpdating}
             >
               <SelectTrigger className="w-[160px] h-7 text-xs">
-                <SelectValue placeholder="Assign category" />
+                <SelectValue placeholder="Assign category">
+                  {email.category_id
+                    ? (email.email_categories?.name ||
+                        categories.find((c) => c.id === email.category_id)?.name ||
+                        "Unknown")
+                    : "No category"}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" sideOffset={4}>
                 <SelectItem value="none">No category</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>

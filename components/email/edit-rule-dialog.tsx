@@ -122,7 +122,7 @@ export function EditRuleDialog({
   if (!rule) return null
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Forwarding Rule</DialogTitle>
@@ -169,9 +169,11 @@ export function EditRuleDialog({
               </FieldDescription>
               <Select value={categoryId} onValueChange={(v) => v && setCategoryId(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder="Select a category">
+                    {categories.find((c) => c.id === categoryId)?.name || "Select a category"}
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4}>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}

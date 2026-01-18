@@ -115,7 +115,7 @@ export function NewRuleDialog({ categories }: NewRuleDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm() }}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm() }} modal={false}>
       <DialogTrigger asChild>
         <Button size="sm" className="gap-1">
           <Plus className="size-3.5" />
@@ -168,9 +168,13 @@ export function NewRuleDialog({ categories }: NewRuleDialogProps) {
               </FieldDescription>
               <Select value={categoryId} onValueChange={(v) => v && setCategoryId(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder="Select a category">
+                    {categoryId
+                      ? categories.find((c) => c.id === categoryId)?.name || "Select a category"
+                      : "Select a category"}
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4}>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
