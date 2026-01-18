@@ -2,7 +2,7 @@ import Link from "next/link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { DeliveryBox01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { listItems } from "@/lib/server/services/inventory"
-import { getCurrentPrice } from "@/lib/server/services/prices"
+import { batchGetCurrentPrices } from "@/lib/server/services/prices"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -22,13 +22,15 @@ export async function ItemList({ orgId, search, page = 1 }: ItemListProps) {
     orgId,
   })
 
-  // Fetch current prices for all items in parallel
-  const itemsWithPrices = await Promise.all(
-    data.items.map(async (item) => {
-      const price = await getCurrentPrice({ itemId: item.id, orgId })
-      return { ...item, currentPrice: price }
-    })
-  )
+  // Fetch all current prices in a single batch query (avoids N+1)
+  const itemIds = data.items.map((item) => item.id)
+  const priceMap = await batchGetCurrentPrices({ itemIds, orgId })
+
+  // Merge prices with items
+  const itemsWithPrices = data.items.map((item) => ({
+    ...item,
+    currentPrice: priceMap.get(item.id) ?? null,
+  }))
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {

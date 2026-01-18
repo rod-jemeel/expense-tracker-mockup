@@ -162,6 +162,49 @@ export async function getCurrentPrice(data: { itemId: string; orgId: string }) {
 }
 
 /**
+ * Batch get current prices for multiple items (solves N+1 query problem)
+ * Returns a Map of itemId -> PriceRow for efficient lookup
+ */
+export async function batchGetCurrentPrices(data: {
+  itemIds: string[]
+  orgId: string
+}): Promise<Map<string, PriceRow>> {
+  const { itemIds, orgId } = data
+
+  if (itemIds.length === 0) {
+    return new Map()
+  }
+
+  const now = new Date().toISOString()
+
+  // Fetch all price history for the items in one query
+  // We'll deduplicate to get latest price per item in application code
+  const { data: prices, error } = await supabase
+    .from("inventory_price_history")
+    .select("*")
+    .eq("org_id", orgId)
+    .in("item_id", itemIds)
+    .lte("effective_at", now)
+    .order("effective_at", { ascending: false })
+
+  if (error) {
+    console.error("Failed to batch fetch prices:", error)
+    throw new ApiError("DATABASE_ERROR", "Failed to fetch prices")
+  }
+
+  // Build map with only the latest price per item
+  const priceMap = new Map<string, PriceRow>()
+  for (const price of prices ?? []) {
+    // Only set if not already set (first occurrence is latest due to ORDER BY)
+    if (!priceMap.has(price.item_id)) {
+      priceMap.set(price.item_id, price as PriceRow)
+    }
+  }
+
+  return priceMap
+}
+
+/**
  * Calculate price change between two dates
  */
 export async function getPriceChange(data: {
