@@ -80,8 +80,10 @@ export const listItems = cache(async function listItems(data: {
   }
 
   // Search by name or SKU
+  // Escape PostgREST special characters to prevent filter injection
   if (query.search) {
-    dbQuery = dbQuery.or(`name.ilike.%${query.search}%,sku.ilike.%${query.search}%`)
+    const escapedSearch = query.search.replace(/[%_\\]/g, "\\$&")
+    dbQuery = dbQuery.or(`name.ilike.%${escapedSearch}%,sku.ilike.%${escapedSearch}%`)
   }
 
   // Support both cursor and offset-based pagination

@@ -168,8 +168,10 @@ export const listExpenses = cache(async function listExpenses(data: {
   if (query.categoryId) {
     dbQuery = dbQuery.eq("category_id", query.categoryId)
   }
+  // Escape PostgREST special characters to prevent filter injection
   if (query.vendor) {
-    dbQuery = dbQuery.ilike("vendor", `%${query.vendor}%`)
+    const escapedVendor = query.vendor.replace(/[%_\\]/g, "\\$&")
+    dbQuery = dbQuery.ilike("vendor", `%${escapedVendor}%`)
   }
 
   // Support both cursor and offset-based pagination

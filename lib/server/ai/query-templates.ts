@@ -424,11 +424,13 @@ const queryExecutors: {
       return { data: null, error: "Access denied" }
     }
 
+    // Escape PostgREST special characters to prevent filter injection
+    const escapedSearchTerm = params.searchTerm.replace(/[%_\\]/g, "\\$&")
     const { data, error } = await supabase
       .from("inventory_items")
       .select("id, name, sku, unit, is_active")
       .eq("org_id", params.orgId)
-      .ilike("name", `%${params.searchTerm}%`)
+      .ilike("name", `%${escapedSearchTerm}%`)
       .limit(20)
 
     if (error) {
@@ -447,10 +449,12 @@ const queryExecutors: {
     }
 
     // Find items matching the name across all orgs
+    // Escape PostgREST special characters to prevent filter injection
+    const escapedItemName = params.itemName.replace(/[%_\\]/g, "\\$&")
     const { data: items, error: itemError } = await supabase
       .from("inventory_items")
       .select("id, org_id, name, unit")
-      .ilike("name", `%${params.itemName}%`)
+      .ilike("name", `%${escapedItemName}%`)
       .eq("is_active", true)
 
     if (itemError) {
