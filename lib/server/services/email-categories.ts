@@ -144,3 +144,115 @@ export async function deleteEmailCategory({
 
   if (error) throw error
 }
+
+// =============================================================================
+// Cross-org queries (superadmin only)
+// =============================================================================
+
+export interface EmailCategoryWithOrg extends EmailCategory {
+  organization?: {
+    id: string
+    name: string
+  } | null
+}
+
+/**
+ * List email categories across ALL organizations (superadmin only)
+ */
+export const listAllEmailCategories = cache(async function listAllEmailCategories(data: {
+  query: ListEmailCategoriesInput & {
+    orgId?: string
+    page?: number
+    limit?: number
+    search?: string
+    sortBy?: string
+    sortOrder?: "asc" | "desc"
+    isActive?: boolean
+  }
+}) {
+  const { query } = data
+  const page = query.page ?? 1
+  const limit = query.limit ?? 20
+  const sortBy = query.sortBy ?? "name"
+  const sortOrder = query.sortOrder ?? "asc"
+
+  let dbQuery = supabase
+    .from("email_categories")
+    .select("*, organization(id, name)", { count: "exact" })
+    .order(sortBy, { ascending: sortOrder === "asc" })
+
+  // Optional org filter
+  if (query.orgId) {
+    dbQuery = dbQuery.eq("org_id", query.orgId)
+  }
+
+  // Active filter (explicit true/false, or includeInactive for legacy)
+  if (query.isActive !== undefined) {
+    dbQuery = dbQuery.eq("is_active", query.isActive)
+  } else if (!query.includeInactive) {
+    dbQuery = dbQuery.eq("is_active", true)
+  }
+
+  // Search filter
+  if (query.search) {
+    dbQuery = dbQuery.ilike("name", `%${query.search}%`)
+  }
+
+  // Pagination
+  if (page >= 1) {
+    const offset = (page - 1) * limit
+    dbQuery = dbQuery.range(offset, offset + limit - 1)
+  }
+
+  const { data: categories, count, error } = await dbQuery
+
+  if (error) throw error
+
+  return {
+    items: categories as EmailCategoryWithOrg[],
+    total: count ?? 0,
+    page,
+    limit,
+  }
+})
+
+/**
+ * Get cross-org email category stats
+ */
+export const getAllCategoryStats = cache(async function getAllCategoryStats() {
+  const { data: categories, error } = await supabase
+    .from("email_categories")
+    .select("org_id, is_active, organization(id, name)")
+
+  if (error) throw error
+
+  const orgStats = new Map<string, { name: string; active: number; total: number }>()
+  let totalCount = 0
+  let activeCount = 0
+
+  for (const category of categories || []) {
+    totalCount++
+    if (category.is_active) activeCount++
+
+    const org = category.organization
+    const orgName = org && typeof org === "object" && "name" in org
+      ? (org as { name: string }).name
+      : "Unknown"
+
+    const existing = orgStats.get(category.org_id) || { name: orgName, active: 0, total: 0 }
+    existing.total++
+    if (category.is_active) existing.active++
+    orgStats.set(category.org_id, existing)
+  }
+
+  return {
+    totalCount,
+    activeCount,
+    byOrg: Array.from(orgStats.entries()).map(([orgId, stats]) => ({
+      orgId,
+      orgName: stats.name,
+      active: stats.active,
+      total: stats.total,
+    })),
+  }
+})

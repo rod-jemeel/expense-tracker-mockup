@@ -37,3 +37,38 @@ export const updateOrgSettingsSchema = z.object({
 })
 
 export type UpdateOrgSettingsInput = z.infer<typeof updateOrgSettingsSchema>
+
+/**
+ * Rename organization (superadmin only)
+ */
+export const renameOrganizationSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must be at most 100 characters"),
+})
+
+export type RenameOrganizationInput = z.infer<typeof renameOrganizationSchema>
+
+/**
+ * Superadmin invite member to an organization (any role)
+ */
+export const superInviteMemberSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  role: z.enum(["org_admin", "finance", "inventory", "viewer"], {
+    message: "Role must be org_admin, finance, inventory, or viewer",
+  }),
+})
+
+export type SuperInviteMemberInput = z.infer<typeof superInviteMemberSchema>
+
+/**
+ * Update member role (superadmin only)
+ */
+export const updateMemberRoleSchema = z.object({
+  role: z.enum(["org_admin", "finance", "inventory", "viewer"], {
+    message: "Role must be org_admin, finance, inventory, or viewer",
+  }),
+})
+
+export type UpdateMemberRoleInput = z.infer<typeof updateMemberRoleSchema>

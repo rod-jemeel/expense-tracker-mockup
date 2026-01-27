@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { requireSuperadmin } from "@/lib/server/auth-helpers"
 import { handleError, validationError } from "@/lib/errors"
 import { inviteOrgAdminSchema } from "@/lib/validations/invitation"
+import { superInviteMemberSchema } from "@/lib/validations/organization"
 import { auth } from "@/lib/auth"
 
 type RouteContext = { params: Promise<{ orgId: string }> }
@@ -21,23 +22,37 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { orgId } = await context.params
 
     const body = await request.json()
-    const result = inviteOrgAdminSchema.safeParse({
+
+    // Support role param from body; fall back to org_admin for backwards compatibility
+    const memberResult = superInviteMemberSchema.safeParse(body)
+    const legacyResult = inviteOrgAdminSchema.safeParse({
       ...body,
       organizationId: orgId,
     })
 
-    if (!result.success) {
-      return validationError(result.error.issues).toResponse()
+    // Try the new schema first (with role), then fall back to legacy (without role)
+    const email = memberResult.success
+      ? memberResult.data.email
+      : legacyResult.success
+        ? legacyResult.data.email
+        : null
+    const role = memberResult.success ? memberResult.data.role : "org_admin"
+
+    if (!email) {
+      const errors = memberResult.success
+        ? []
+        : (legacyResult.error?.issues || [])
+      return validationError(errors).toResponse()
     }
 
-    const { email, organizationId } = result.data
+    const organizationId = orgId
 
     // Create invitation using Better Auth API
     const invitation = await auth.api.createInvitation({
       headers: await headers(),
       body: {
         email,
-        role: "org_admin",
+        role,
         organizationId,
       },
     })
@@ -45,7 +60,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // Log invitation (non-blocking)
     after(async () => {
       console.log(
-        `[AUDIT] Superadmin ${session.user.email} invited ${email} as org_admin to org ${organizationId}`
+        `[AUDIT] Superadmin ${session.user.email} invited ${email} as ${role} to org ${organizationId}`
       )
     })
 

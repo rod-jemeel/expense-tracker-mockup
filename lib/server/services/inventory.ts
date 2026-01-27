@@ -229,3 +229,118 @@ export async function deleteItem(data: {
 
   return { deleted: true }
 }
+
+// =============================================================================
+// Cross-org queries (superadmin only)
+// =============================================================================
+
+export interface ItemWithOrg extends ItemRow {
+  organization?: {
+    id: string
+    name: string
+  } | null
+}
+
+/**
+ * List inventory items across ALL organizations (superadmin only)
+ * Uses FK relationship to organization table for efficient JOINs
+ */
+export const listAllItems = cache(async function listAllItems(data: {
+  query: ListItemsQuery & {
+    orgId?: string
+    sortBy?: string
+    sortOrder?: "asc" | "desc"
+  }
+}) {
+  const { query } = data
+  const sortBy = query.sortBy ?? "name"
+  const sortOrder = query.sortOrder ?? "asc"
+
+  let dbQuery = supabase
+    .from("inventory_items")
+    .select("*, organization(id, name)", { count: "exact" })
+    .order(sortBy, { ascending: sortOrder === "asc" })
+
+  // Optional org filter
+  if (query.orgId) {
+    dbQuery = dbQuery.eq("org_id", query.orgId)
+  }
+
+  // Filter by active status
+  if (query.isActive !== undefined) {
+    dbQuery = dbQuery.eq("is_active", query.isActive)
+  }
+
+  // Search by name or SKU
+  if (query.search) {
+    const escapedSearch = query.search.replace(/[%_\\]/g, "\\$&")
+    dbQuery = dbQuery.or(`name.ilike.%${escapedSearch}%,sku.ilike.%${escapedSearch}%`)
+  }
+
+  // Pagination
+  if (query.page && query.page >= 1) {
+    const offset = (query.page - 1) * query.limit
+    dbQuery = dbQuery.range(offset, offset + query.limit - 1)
+  } else {
+    dbQuery = dbQuery.limit(query.limit)
+  }
+
+  const { data: items, error, count } = await dbQuery
+
+  if (error) {
+    console.error("Failed to list all inventory items:", error)
+    throw new ApiError("DATABASE_ERROR", "Failed to list inventory items")
+  }
+
+  return {
+    items: (items || []) as ItemWithOrg[],
+    total: count ?? 0,
+    page: query.page ?? 1,
+    limit: query.limit,
+  }
+})
+
+/**
+ * Get cross-org inventory stats
+ * Uses FK relationship to organization table for efficient JOINs
+ */
+export const getAllInventoryStats = cache(async function getAllInventoryStats() {
+  const { data: items, error } = await supabase
+    .from("inventory_items")
+    .select("org_id, is_active, organization(id, name)")
+
+  if (error) {
+    console.error("Failed to get inventory stats:", error)
+    throw new ApiError("DATABASE_ERROR", "Failed to get inventory stats")
+  }
+
+  const orgStats = new Map<string, { name: string; active: number; total: number }>()
+  let totalCount = 0
+  let activeCount = 0
+
+  for (const item of items || []) {
+    totalCount++
+    if (item.is_active) activeCount++
+
+    // Handle both array and single object (Supabase types may vary)
+    const orgData = item.organization as { id: string; name: string } | { id: string; name: string }[] | null
+    const org = Array.isArray(orgData) ? orgData[0] : orgData
+    const orgName = org?.name || "Unknown"
+
+    const existing = orgStats.get(item.org_id) || { name: orgName, active: 0, total: 0 }
+    existing.total++
+    if (item.is_active) existing.active++
+    orgStats.set(item.org_id, existing)
+  }
+
+  return {
+    totalCount,
+    activeCount,
+    byOrg: Array.from(orgStats.entries()).map(([orgId, stats]) => ({
+      orgId,
+      orgName: stats.name,
+      active: stats.active,
+      total: stats.total,
+    })),
+  }
+})

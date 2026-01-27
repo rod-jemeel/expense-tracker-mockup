@@ -2,9 +2,9 @@ import { z } from "zod"
 import { uuidSchema, amountSchema, paginationSchema } from "./common"
 
 /**
- * Frequency schema - currently only monthly supported
+ * Frequency schema
  */
-const frequencySchema = z.enum(["monthly"])
+const frequencySchema = z.enum(["weekly", "biweekly", "monthly", "quarterly", "yearly"])
 
 /**
  * Day of month schema (1-31)
@@ -19,8 +19,9 @@ const dayOfMonthSchema = z.coerce
  * Create recurring template request body
  */
 export const createRecurringTemplateSchema = z.object({
-  categoryId: uuidSchema,
+  categoryId: uuidSchema.optional(),
   vendor: z.string().max(255).optional(),
+  name: z.string().max(255).optional(),
   estimatedAmount: amountSchema.optional(),
   notes: z.string().max(1000).optional(),
   frequency: frequencySchema.default("monthly"),
@@ -35,6 +36,7 @@ export type CreateRecurringTemplateInput = z.infer<typeof createRecurringTemplat
 export const updateRecurringTemplateSchema = z.object({
   categoryId: uuidSchema.optional(),
   vendor: z.string().max(255).nullable().optional(),
+  name: z.string().max(255).nullable().optional(),
   estimatedAmount: amountSchema.nullable().optional(),
   notes: z.string().max(1000).nullable().optional(),
   frequency: frequencySchema.optional(),

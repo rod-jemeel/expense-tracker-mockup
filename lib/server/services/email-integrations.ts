@@ -139,6 +139,35 @@ export async function connectEmailAccount({
   return integration
 }
 
+export async function updateEmailAccount({
+  integrationId,
+  orgId,
+  input,
+}: {
+  integrationId: string
+  orgId: string
+  input: {
+    provider?: string
+    isActive?: boolean
+  }
+}): Promise<EmailIntegration> {
+  const updateData: Record<string, unknown> = {}
+  if (input.provider !== undefined) updateData.provider = input.provider
+  if (input.isActive !== undefined) updateData.is_active = input.isActive
+  updateData.updated_at = new Date().toISOString()
+
+  const { data, error } = await supabase
+    .from("email_integrations")
+    .update(updateData)
+    .eq("id", integrationId)
+    .eq("org_id", orgId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
 export async function disconnectEmailAccount({
   integrationId,
   orgId,
@@ -244,3 +273,115 @@ export async function syncEmailAccount({
     forwardingResults,
   }
 }
+
+// =============================================================================
+// Cross-org queries (superadmin only)
+// =============================================================================
+
+export interface EmailIntegrationWithOrg extends EmailIntegration {
+  organization?: {
+    id: string
+    name: string
+  } | null
+}
+
+/**
+ * List email integrations across ALL organizations (superadmin only)
+ */
+export const listAllEmailIntegrations = cache(async function listAllEmailIntegrations(data: {
+  query: ListEmailIntegrationsInput & {
+    orgId?: string
+    page?: number
+    limit?: number
+    search?: string
+    sortBy?: string
+    sortOrder?: "asc" | "desc"
+    isActive?: boolean
+  }
+}) {
+  const { query } = data
+  const page = query.page ?? 1
+  const limit = query.limit ?? 20
+  const sortBy = query.sortBy ?? "email_address"
+  const sortOrder = query.sortOrder ?? "asc"
+
+  let dbQuery = supabase
+    .from("email_integrations")
+    .select("*, organization(id, name)", { count: "exact" })
+    .order(sortBy, { ascending: sortOrder === "asc" })
+
+  // Optional org filter
+  if (query.orgId) {
+    dbQuery = dbQuery.eq("org_id", query.orgId)
+  }
+
+  // Active filter (explicit true/false, or includeInactive for legacy)
+  if (query.isActive !== undefined) {
+    dbQuery = dbQuery.eq("is_active", query.isActive)
+  } else if (!query.includeInactive) {
+    dbQuery = dbQuery.eq("is_active", true)
+  }
+
+  // Search filter
+  if (query.search) {
+    dbQuery = dbQuery.ilike("email_address", `%${query.search}%`)
+  }
+
+  // Pagination
+  if (page >= 1) {
+    const offset = (page - 1) * limit
+    dbQuery = dbQuery.range(offset, offset + limit - 1)
+  }
+
+  const { data: integrations, count, error } = await dbQuery
+
+  if (error) throw error
+
+  return {
+    items: integrations as EmailIntegrationWithOrg[],
+    total: count ?? 0,
+    page,
+    limit,
+  }
+})
+
+/**
+ * Get cross-org email integration stats
+ */
+export const getAllIntegrationStats = cache(async function getAllIntegrationStats() {
+  const { data: integrations, error } = await supabase
+    .from("email_integrations")
+    .select("org_id, is_active, provider, organization(id, name)")
+
+  if (error) throw error
+
+  const orgStats = new Map<string, { name: string; active: number; total: number }>()
+  let totalCount = 0
+  let activeCount = 0
+
+  for (const integration of integrations || []) {
+    totalCount++
+    if (integration.is_active) activeCount++
+
+    const org = integration.organization
+    const orgName = org && typeof org === "object" && "name" in org
+      ? (org as { name: string }).name
+      : "Unknown"
+
+    const existing = orgStats.get(integration.org_id) || { name: orgName, active: 0, total: 0 }
+    existing.total++
+    if (integration.is_active) existing.active++
+    orgStats.set(integration.org_id, existing)
+  }
+
+  return {
+    totalCount,
+    activeCount,
+    byOrg: Array.from(orgStats.entries()).map(([orgId, stats]) => ({
+      orgId,
+      orgName: stats.name,
+      active: stats.active,
+      total: stats.total,
+    })),
+  }
+})

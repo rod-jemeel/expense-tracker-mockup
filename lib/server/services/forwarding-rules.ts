@@ -164,3 +164,130 @@ export async function deleteForwardingRule({
 
   if (error) throw error
 }
+
+// =============================================================================
+// Cross-org queries (superadmin only)
+// =============================================================================
+
+export interface ForwardingRuleWithOrg extends ForwardingRuleWithCategory {
+  organization?: {
+    id: string
+    name: string
+  }
+}
+
+interface RulesStats {
+  totalCount: number
+  activeCount: number
+  byOrg: Array<{ orgId: string; orgName: string; active: number; total: number }>
+}
+
+/**
+ * Get cross-org forwarding rules stats
+ */
+export const getAllRulesStats = cache(async function getAllRulesStats(): Promise<RulesStats> {
+  const { data: rules, error } = await supabase
+    .from("email_forwarding_rules")
+    .select("org_id, is_active, organization(id, name)")
+
+  if (error) throw error
+
+  const orgStats = new Map<string, { name: string; active: number; total: number }>()
+  let totalCount = 0
+  let activeCount = 0
+
+  for (const rule of rules || []) {
+    totalCount++
+    if (rule.is_active) activeCount++
+
+    // Handle both array and single object (Supabase types may vary)
+    const orgData = rule.organization as { id: string; name: string } | { id: string; name: string }[] | null
+    const org = Array.isArray(orgData) ? orgData[0] : orgData
+    if (org) {
+      const existing = orgStats.get(org.id)
+      if (existing) {
+        existing.total++
+        if (rule.is_active) existing.active++
+      } else {
+        orgStats.set(org.id, {
+          name: org.name,
+          active: rule.is_active ? 1 : 0,
+          total: 1,
+        })
+      }
+    }
+  }
+
+  return {
+    totalCount,
+    activeCount,
+    byOrg: Array.from(orgStats.entries()).map(([orgId, data]) => ({
+      orgId,
+      orgName: data.name,
+      active: data.active,
+      total: data.total,
+    })),
+  }
+})
+
+/**
+ * List forwarding rules across ALL organizations (superadmin only)
+ * Includes organization info for display
+ */
+export const listAllForwardingRules = cache(async function listAllForwardingRules({
+  query,
+}: {
+  query: ListForwardingRulesInput & {
+    orgId?: string
+    page?: number
+    limit?: number
+    search?: string
+    sortBy?: string
+    sortOrder?: "asc" | "desc"
+    isActive?: boolean
+  }
+}): Promise<{ items: ForwardingRuleWithOrg[]; total: number; page: number; limit: number }> {
+  const page = query.page ?? 1
+  const limit = query.limit ?? 20
+  const sortBy = query.sortBy ?? "name"
+  const sortOrder = query.sortOrder ?? "asc"
+
+  let queryBuilder = supabase
+    .from("email_forwarding_rules")
+    .select("*, email_categories(id, name, color), organization(id, name)", { count: "exact" })
+    .order(sortBy, { ascending: sortOrder === "asc" })
+
+  // Optional org filter
+  if (query.orgId) {
+    queryBuilder = queryBuilder.eq("org_id", query.orgId)
+  }
+
+  // Active filter (explicit true/false, or includeInactive for legacy)
+  if (query.isActive !== undefined) {
+    queryBuilder = queryBuilder.eq("is_active", query.isActive)
+  } else if (!query.includeInactive) {
+    queryBuilder = queryBuilder.eq("is_active", true)
+  }
+
+  // Search filter
+  if (query.search) {
+    queryBuilder = queryBuilder.ilike("name", `%${query.search}%`)
+  }
+
+  // Pagination
+  if (page >= 1) {
+    const offset = (page - 1) * limit
+    queryBuilder = queryBuilder.range(offset, offset + limit - 1)
+  }
+
+  const { data, count, error } = await queryBuilder
+
+  if (error) throw error
+
+  return {
+    items: data || [],
+    total: count || 0,
+    page,
+    limit,
+  }
+})

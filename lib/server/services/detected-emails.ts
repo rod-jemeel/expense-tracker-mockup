@@ -185,3 +185,108 @@ export const getEmailCounts = cache(async function getEmailCounts({
     total: total || 0,
   }
 })
+
+// =============================================================================
+// Cross-org queries (superadmin only)
+// =============================================================================
+
+export interface DetectedEmailWithOrg extends DetectedEmailWithCategory {
+  organization?: {
+    id: string
+    name: string
+  } | null
+}
+
+/**
+ * List detected emails across ALL organizations (superadmin only)
+ * Includes organization info for display
+ */
+export const listAllDetectedEmails = cache(async function listAllDetectedEmails({
+  query,
+}: {
+  query: ListDetectedEmailsInput & { orgId?: string }
+}): Promise<{ items: DetectedEmailWithOrg[]; total: number; page: number; limit: number }> {
+  const offset = (query.page - 1) * query.limit
+
+  let queryBuilder = supabase
+    .from("detected_emails")
+    .select("*, email_categories(id, name, color), organization(id, name)", { count: "exact" })
+    .eq("is_archived", query.isArchived)
+    .order("received_at", { ascending: false })
+    .range(offset, offset + query.limit - 1)
+
+  // Optional org filter
+  if (query.orgId) {
+    queryBuilder = queryBuilder.eq("org_id", query.orgId)
+  }
+
+  if (query.categoryId) {
+    queryBuilder = queryBuilder.eq("category_id", query.categoryId)
+  }
+
+  if (query.isRead !== undefined) {
+    queryBuilder = queryBuilder.eq("is_read", query.isRead)
+  }
+
+  const { data, count, error } = await queryBuilder
+
+  if (error) throw error
+
+  return {
+    items: data || [],
+    total: count || 0,
+    page: query.page,
+    limit: query.limit,
+  }
+})
+
+/**
+ * Get cross-org email counts (superadmin only)
+ */
+export const getAllEmailCounts = cache(async function getAllEmailCounts(): Promise<{
+  unread: number
+  total: number
+  byOrg: Array<{ orgId: string; orgName: string; unread: number; total: number }>
+}> {
+  // Get all non-archived emails with org info
+  const { data: emails, error } = await supabase
+    .from("detected_emails")
+    .select("org_id, is_read, organization(id, name)")
+    .eq("is_archived", false)
+
+  if (error) throw error
+
+  const orgCounts = new Map<string, { name: string; unread: number; total: number }>()
+  let totalUnread = 0
+  let totalAll = 0
+
+  for (const email of emails || []) {
+    totalAll++
+    if (!email.is_read) totalUnread++
+
+    // Handle Supabase relation format (can be object or array)
+    const org = email.organization
+    const orgName = org && typeof org === "object" && "name" in org
+      ? (org as { name: string }).name
+      : "Unknown"
+    const existing = orgCounts.get(email.org_id) || {
+      name: orgName,
+      unread: 0,
+      total: 0,
+    }
+    existing.total++
+    if (!email.is_read) existing.unread++
+    orgCounts.set(email.org_id, existing)
+  }
+
+  return {
+    unread: totalUnread,
+    total: totalAll,
+    byOrg: Array.from(orgCounts.entries()).map(([orgId, counts]) => ({
+      orgId,
+      orgName: counts.name,
+      unread: counts.unread,
+      total: counts.total,
+    })),
+  }
+})

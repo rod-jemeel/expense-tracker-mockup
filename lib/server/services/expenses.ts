@@ -383,3 +383,127 @@ export async function deleteExpense(data: {
 
   return { deleted: true }
 }
+
+// =============================================================================
+// Cross-org queries (superadmin only)
+// =============================================================================
+
+export interface ExpenseWithOrg extends ExpenseWithCategory {
+  organization?: {
+    id: string
+    name: string
+  } | null
+}
+
+/**
+ * List expenses across ALL organizations (superadmin only)
+ * Uses FK relationship to organization table for efficient JOINs
+ */
+export const listAllExpenses = cache(async function listAllExpenses(data: {
+  query: ListExpensesQuery & {
+    orgId?: string
+    search?: string
+    sortBy?: "expense_date" | "amount" | "vendor"
+    sortOrder?: "asc" | "desc"
+  }
+}) {
+  const { query } = data
+  const sortBy = query.sortBy || "expense_date"
+  const sortOrder = query.sortOrder || "desc"
+
+  let dbQuery = supabase
+    .from("expenses")
+    .select("*, expense_categories(id, name), organization(id, name)", { count: "exact" })
+
+  // Optional org filter
+  if (query.orgId) {
+    dbQuery = dbQuery.eq("org_id", query.orgId)
+  }
+
+  // Search by vendor
+  if (query.search) {
+    dbQuery = dbQuery.ilike("vendor", `%${query.search}%`)
+  }
+
+  // Apply date filters
+  if (query.from) {
+    dbQuery = dbQuery.gte("expense_date", query.from)
+  }
+  if (query.to) {
+    dbQuery = dbQuery.lte("expense_date", query.to)
+  }
+  if (query.categoryId) {
+    dbQuery = dbQuery.eq("category_id", query.categoryId)
+  }
+
+  // Sorting - add secondary sort by created_at for stable ordering
+  dbQuery = dbQuery.order(sortBy, { ascending: sortOrder === "asc" })
+  dbQuery = dbQuery.order("created_at", { ascending: false })
+
+  // Pagination
+  if (query.page && query.page >= 1) {
+    const offset = (query.page - 1) * query.limit
+    dbQuery = dbQuery.range(offset, offset + query.limit - 1)
+  } else {
+    dbQuery = dbQuery.limit(query.limit)
+  }
+
+  const { data: expenses, error, count } = await dbQuery
+
+  if (error) {
+    console.error("Failed to list all expenses:", error)
+    throw new ApiError("DATABASE_ERROR", "Failed to list expenses")
+  }
+
+  return {
+    items: (expenses || []) as ExpenseWithOrg[],
+    total: count ?? 0,
+    page: query.page ?? 1,
+    limit: query.limit,
+  }
+})
+
+/**
+ * Get cross-org expense summary stats
+ * Uses FK relationship to organization table for efficient JOINs
+ */
+export const getAllExpenseStats = cache(async function getAllExpenseStats() {
+  const { data: expenses, error } = await supabase
+    .from("expenses")
+    .select("org_id, amount, organization(id, name)")
+
+  if (error) {
+    console.error("Failed to get expense stats:", error)
+    throw new ApiError("DATABASE_ERROR", "Failed to get expense stats")
+  }
+
+  const orgStats = new Map<string, { name: string; count: number; total: number }>()
+  let totalAmount = 0
+  let totalCount = 0
+
+  for (const expense of expenses || []) {
+    totalCount++
+    totalAmount += expense.amount || 0
+
+    // Handle both array and single object (Supabase types may vary)
+    const orgData = expense.organization as { id: string; name: string } | { id: string; name: string }[] | null
+    const org = Array.isArray(orgData) ? orgData[0] : orgData
+    const orgName = org?.name || "Unknown"
+
+    const existing = orgStats.get(expense.org_id) || { name: orgName, count: 0, total: 0 }
+    existing.count++
+    existing.total += expense.amount || 0
+    orgStats.set(expense.org_id, existing)
+  }
+
+  return {
+    totalCount,
+    totalAmount,
+    byOrg: Array.from(orgStats.entries()).map(([orgId, stats]) => ({
+      orgId,
+      orgName: stats.name,
+      count: stats.count,
+      total: stats.total,
+    })),
+  }
+})
