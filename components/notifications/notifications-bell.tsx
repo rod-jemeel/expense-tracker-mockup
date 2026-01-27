@@ -13,118 +13,56 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-
-interface Notification {
-  id: string
-  type: string
-  title: string
-  message: string | null
-  related_type: string | null
-  related_id: string | null
-  metadata: Record<string, unknown>
-  is_read: boolean
-  created_at: string
-}
+import { useNotificationStore } from "@/lib/stores/notification-store"
 
 export function NotificationsBell() {
   const router = useRouter()
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [open, setOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [isLoading, setIsLoading] = useState(false)
+
+  const notifications = useNotificationStore((s) => s.notifications)
+  const unreadCount = useNotificationStore((s) => s.unreadCount)
+  const isLoading = useNotificationStore((s) => s.isLoading)
+  const fetchNotifications = useNotificationStore((s) => s.fetchNotifications)
+  const fetchUnreadCount = useNotificationStore((s) => s.fetchUnreadCount)
+  const markAsRead = useNotificationStore((s) => s.markAsRead)
+  const markAllAsRead = useNotificationStore((s) => s.markAllAsRead)
 
   const orgId = activeOrg?.id
 
-  const fetchNotifications = useCallback(async () => {
-    if (!orgId) return
-
-    setIsLoading(true)
-    try {
-      const response = await fetch(
-        `/api/orgs/${orgId}/notifications?includeRead=true&limit=10`
-      )
-      if (response.ok) {
-        const data = await response.json()
-        setNotifications(data.items)
-        setUnreadCount(data.unreadCount)
-      }
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [orgId])
-
-  const fetchUnreadCount = useCallback(async () => {
-    if (!orgId) return
-
-    try {
-      const response = await fetch(
-        `/api/orgs/${orgId}/notifications?countOnly=true`
-      )
-      if (response.ok) {
-        const data = await response.json()
-        setUnreadCount(data.unreadCount)
-      }
-    } catch (error) {
-      console.error("Failed to fetch unread count:", error)
-    }
-  }, [orgId])
-
   // Fetch unread count on mount and periodically
   useEffect(() => {
-    fetchUnreadCount()
-    const interval = setInterval(fetchUnreadCount, 30000) // every 30 seconds
+    if (!orgId) return
+    fetchUnreadCount(orgId)
+    const interval = setInterval(() => fetchUnreadCount(orgId), 30000)
     return () => clearInterval(interval)
-  }, [fetchUnreadCount])
+  }, [orgId, fetchUnreadCount])
 
   // Fetch full notifications when popover opens
   useEffect(() => {
-    if (open) {
-      fetchNotifications()
+    if (open && orgId) {
+      fetchNotifications(orgId)
     }
-  }, [open, fetchNotifications])
+  }, [open, orgId, fetchNotifications])
 
-  async function handleMarkAsRead(notificationId: string) {
+  const handleMarkAsRead = useCallback(
+    (notificationId: string) => {
+      if (!orgId) return
+      markAsRead(orgId, notificationId)
+    },
+    [orgId, markAsRead]
+  )
+
+  const handleMarkAllAsRead = useCallback(() => {
     if (!orgId) return
+    markAllAsRead(orgId)
+  }, [orgId, markAllAsRead])
 
-    try {
-      await fetch(`/api/orgs/${orgId}/notifications/${notificationId}`, {
-        method: "PATCH",
-      })
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId ? { ...n, is_read: true } : n
-        )
-      )
-      setUnreadCount((prev) => Math.max(0, prev - 1))
-    } catch (error) {
-      console.error("Failed to mark notification as read:", error)
-    }
-  }
-
-  async function handleMarkAllAsRead() {
-    if (!orgId) return
-
-    try {
-      await fetch(`/api/orgs/${orgId}/notifications/read-all`, {
-        method: "POST",
-      })
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
-      setUnreadCount(0)
-    } catch (error) {
-      console.error("Failed to mark all as read:", error)
-    }
-  }
-
-  function handleNotificationClick(notification: Notification) {
-    // Mark as read
+  function handleNotificationClick(notification: { id: string; is_read: boolean; related_type: string | null; related_id: string | null }) {
     if (!notification.is_read) {
       handleMarkAsRead(notification.id)
     }
 
-    // Navigate to related item
     if (notification.related_type === "detected_email" && notification.related_id) {
       setOpen(false)
       router.push(`/inbox?email=${notification.related_id}`)
