@@ -1,7 +1,8 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   DashboardSquare01Icon,
@@ -20,6 +21,7 @@ import {
   Mail01Icon,
   Tag01Icon,
   Folder01Icon,
+  FlashIcon,
 } from "@hugeicons/core-free-icons"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -45,6 +47,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 
+// Main navigation for regular org context
 const mainNav = [
   {
     title: "Dashboard",
@@ -67,22 +70,13 @@ const mainNav = [
     icon: DeliveryBox01Icon,
   },
   {
-    title: "Inbox",
-    href: "/inbox",
-    icon: InboxIcon,
-  },
-  {
-    title: "Rules",
-    href: "/inbox/rules",
-    icon: Share01Icon,
-  },
-  {
     title: "AI Assistant",
     href: "/ai",
     icon: AiBrain01Icon,
   },
 ]
 
+// Settings navigation for regular org context (Email moved to Admin Hub)
 const settingsNav = [
   {
     title: "Organization",
@@ -104,14 +98,72 @@ const settingsNav = [
     href: "/settings/departments",
     icon: Folder01Icon,
   },
+]
+
+// Admin Hub main navigation (superadmin only)
+const adminHubMainNav = [
+  {
+    title: "Dashboard",
+    href: "/super",
+    icon: DashboardSquare01Icon,
+    exact: true,
+  },
+  {
+    title: "Organizations",
+    href: "/super/organizations",
+    icon: Building03Icon,
+  },
+  {
+    title: "Quick Actions",
+    href: "/super/actions",
+    icon: FlashIcon,
+  },
+  {
+    title: "AI Assistant",
+    href: "/ai",
+    icon: AiBrain01Icon,
+  },
+]
+
+// Admin Hub data navigation - cross-org lists
+const adminHubDataNav = [
+  {
+    title: "Expenses",
+    href: "/super/expenses",
+    icon: Invoice01Icon,
+  },
+  {
+    title: "Recurring",
+    href: "/super/recurring",
+    icon: Recycle01Icon,
+  },
+  {
+    title: "Inventory",
+    href: "/super/inventory",
+    icon: DeliveryBox01Icon,
+  },
+]
+
+// Admin Hub email navigation - email system management
+const adminHubEmailNav = [
+  {
+    title: "Inbox",
+    href: "/super/inbox",
+    icon: InboxIcon,
+  },
+  {
+    title: "Rules",
+    href: "/super/inbox/rules",
+    icon: Share01Icon,
+  },
   {
     title: "Email Accounts",
-    href: "/settings/email",
+    href: "/super/email-accounts",
     icon: Mail01Icon,
   },
   {
     title: "Email Categories",
-    href: "/settings/email/categories",
+    href: "/super/email-categories",
     icon: Tag01Icon,
   },
 ]
@@ -187,8 +239,19 @@ export function AppSidebarSkeleton() {
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const { data: activeOrg, isPending: orgPending } = authClient.useActiveOrganization()
+
+  // Prevent hydration mismatch: auth state differs between server/client
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Check if we're in Admin Hub context (any /super route)
+  const isAdminHubActive = pathname.startsWith("/super")
+  const isSuperadmin = session?.user?.role === "superadmin"
 
   const handleSignOut = async () => {
     await authClient.signOut({
@@ -200,6 +263,14 @@ export function AppSidebar() {
     })
   }
 
+  const handleSwitchToAdminHub = () => {
+    router.push("/super")
+  }
+
+  const handleSwitchToOrg = () => {
+    router.push("/dashboard")
+  }
+
   const userInitials = session?.user?.name
     ? session.user.name
         .split(" ")
@@ -209,6 +280,12 @@ export function AppSidebar() {
         .slice(0, 2)
     : session?.user?.email?.slice(0, 2).toUpperCase() || "?"
 
+  // Determine header display
+  const headerIcon = isAdminHubActive ? Shield01Icon : Building03Icon
+  const headerLabel = isAdminHubActive
+    ? "Admin Hub"
+    : activeOrg?.name || "Select Organization"
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-border px-2 py-2">
@@ -216,21 +293,59 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<SidebarMenuButton className="w-full justify-between" />}
+                render={
+                  <SidebarMenuButton
+                    className={`w-full justify-between ${isAdminHubActive ? "bg-primary/10" : ""}`}
+                  />
+                }
               >
                 <div className="flex items-center gap-2">
-                  <HugeiconsIcon icon={Building03Icon} strokeWidth={2} className="size-4" />
-                  {orgPending ? (
+                  <HugeiconsIcon
+                    icon={headerIcon}
+                    strokeWidth={2}
+                    className="size-4"
+                  />
+                  {!mounted || (orgPending && !isAdminHubActive) ? (
                     <Skeleton className="h-4 w-24" />
                   ) : (
                     <span className="truncate text-xs font-medium">
-                      {activeOrg?.name || "Select Organization"}
+                      {headerLabel}
                     </span>
                   )}
                 </div>
                 <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-3" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
+                {/* Admin Hub option (superadmins only) */}
+                {isSuperadmin && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={handleSwitchToAdminHub}
+                      className={isAdminHubActive ? "bg-muted" : ""}
+                    >
+                      <HugeiconsIcon icon={Shield01Icon} strokeWidth={2} className="mr-2 size-4" />
+                      Admin Hub
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {/* Current org indicator (if in org context) */}
+                {!isAdminHubActive && activeOrg && (
+                  <>
+                    <DropdownMenuItem disabled className="opacity-100">
+                      <HugeiconsIcon icon={Building03Icon} strokeWidth={2} className="mr-2 size-4" />
+                      <span className="truncate">{activeOrg.name}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {/* Switch to org (if in admin hub) */}
+                {isAdminHubActive && activeOrg && (
+                  <DropdownMenuItem onClick={handleSwitchToOrg}>
+                    <HugeiconsIcon icon={Building03Icon} strokeWidth={2} className="mr-2 size-4" />
+                    <span className="truncate">{activeOrg.name}</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem render={<Link href="/org/select" />}>
                   Switch Organization
                 </DropdownMenuItem>
@@ -241,78 +356,119 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNav.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.href || (pathname.startsWith(item.href + "/") && !mainNav.some(nav => nav.href !== item.href && pathname.startsWith(nav.href)))}
-                  >
-                    <Link href={item.href}>
-                      <HugeiconsIcon icon={item.icon} strokeWidth={2} />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isAdminHubActive ? (
+          // Admin Hub navigation with multiple groups
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Admin Hub</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {adminHubMainNav.map((item) => {
+                    const isActive = item.exact
+                      ? pathname === item.href
+                      : pathname === item.href || pathname.startsWith(item.href + "/")
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton asChild isActive={isActive}>
+                          <Link href={item.href}>
+                            <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settingsNav.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.href}
-                  >
-                    <Link href={item.href}>
-                      <HugeiconsIcon icon={item.icon} strokeWidth={2} />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+            <SidebarGroup>
+              <SidebarGroupLabel>Cross-Org Data</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {adminHubDataNav.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton asChild isActive={isActive}>
+                          <Link href={item.href}>
+                            <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
 
-        {session?.user?.role === "superadmin" && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === "/super"}
-                  >
-                    <Link href="/super">
-                      <HugeiconsIcon icon={Shield01Icon} strokeWidth={2} />
-                      <span>Super Dashboard</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith("/super/organizations")}
-                  >
-                    <Link href="/super/organizations">
-                      <HugeiconsIcon icon={Building03Icon} strokeWidth={2} />
-                      <span>Organizations</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+            <SidebarGroup>
+              <SidebarGroupLabel>Email System</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {adminHubEmailNav.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton asChild isActive={isActive}>
+                          <Link href={item.href}>
+                            <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        ) : (
+          // Regular org navigation
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Main</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {mainNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === item.href || (pathname.startsWith(item.href + "/") && !mainNav.some(nav => nav.href !== item.href && pathname.startsWith(nav.href)))}
+                      >
+                        <Link href={item.href}>
+                          <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Settings</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {settingsNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === item.href}
+                      >
+                        <Link href={item.href}>
+                          <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         )}
       </SidebarContent>
 
@@ -325,11 +481,11 @@ export function AppSidebar() {
               >
                 <Avatar className="size-6">
                   <AvatarFallback className="text-[10px]">
-                    {sessionPending ? "..." : userInitials}
+                    {!mounted || sessionPending ? "..." : userInitials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-1 flex-col items-start text-left">
-                  {sessionPending ? (
+                  {!mounted || sessionPending ? (
                     <Skeleton className="h-3 w-20" />
                   ) : (
                     <>
