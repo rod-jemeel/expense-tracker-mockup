@@ -17,6 +17,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Expense Tracker",
   description: "Track expenses and inventory prices for your organization",
+  icons: {
+    icon: [
+      { url: "/icon-192.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [
+      { url: "/icon-192.png", sizes: "192x192" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
